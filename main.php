@@ -8,6 +8,7 @@ use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 $application = new Application();
@@ -18,6 +19,7 @@ $application->add(new class extends Command {
             ->addOption('debug', 'd', null, 'Enable debug mode')
             ->addOption('register', 'r', null, 'How many registers to use')
             ->addOption('export', 'e', null, 'Export registers')
+            ->addOption('execute', 'E', InputOption::VALUE_REQUIRED, 'Execute the code')
             ->addArgument('file', InputArgument::OPTIONAL, 'File to execute', null)
             ->setHelp('This command runs the Sop interpreter.')
             ->setName('run')
@@ -35,8 +37,15 @@ $application->add(new class extends Command {
             $sop->enableDebug();
         }
 
-        if ($input->getArgument('file') && is_readable($input->getArgument('file'))) {
+        if ($input->getArgument('file')) {
+            if (!is_readable($input->getArgument('file'))) {
+                $output->writeln('<error>File not found</error>');
+                return Command::FAILURE;
+            }
+
             $code = file_get_contents($input->getArgument('file'));
+        } elseif ($input->getOption('execute')) {
+            $code = str_replace('\n', "\n", $input->getOption('execute'));
         } else {
             $code = <<<CODE
 LOAD 5 6 0
@@ -59,7 +68,7 @@ CODE;
 
         $sop->process($code);
 
-        if ($input->getOption('export')) {
+        if ($input->getOption('export') || $input->getOption('debug')) {
             $output->writeln('<info>Registers:</info>');
             foreach ($sop->exportRegisters() as $index => $value) {
                 $output->writeln("R$index: $value");

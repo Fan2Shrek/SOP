@@ -5,15 +5,18 @@ class Sop
     private const RAW_LEFT  = 1 << 6;
     private const RAW_RIGHT = 1 << 7;
 
-    private const INSTRUCTION_NO_OP = 0b00000000;
-    private const INSTRUCTION_ADD   = 0b00000001;
-    private const INSTRUCTION_SUB   = 0b00000010;
-    private const INSTRUCTION_LOAD  = 0b00000101;
-    private const INSTRUCTION_HALT  = 0b00000111;
+    private const INSTRUCTION_NO_OP  = 0b00000000;
+    private const INSTRUCTION_ADD    = 0b00000001;
+    private const INSTRUCTION_SUB    = 0b00000010;
+    private const INSTRUCTION_LOAD   = 0b00000101;
+    private const INSTRUCTION_HALT   = 0b00000111;
 
-    private const INSTRUCTION_JUMP  = 0b00001000;
-    private const INSTRUCTION_JEQZ  = 0b00001001;
-    private const INSTRUCTION_JEQ   = 0b00001010;
+    private const INSTRUCTION_JUMP   = 0b00001000;
+    private const INSTRUCTION_JEQZ   = 0b00001001;
+    private const INSTRUCTION_JEQ    = 0b00001010;
+
+    private const INTRUCTION_INCHAR  = 0b00001100;
+    private const INTRUCTION_OUTCHAR = 0b00001101;
 
     private const MNEMONICS = [
         'NOP'      => self::INSTRUCTION_NO_OP,
@@ -31,6 +34,9 @@ class Sop
         'JMP'      => self::INSTRUCTION_JUMP | self::RAW_LEFT,
         'JEQZ'     => self::INSTRUCTION_JEQZ | self::RAW_LEFT,
         'JEQ'      => self::INSTRUCTION_JEQ  | self::RAW_LEFT | self::RAW_RIGHT,
+
+        'INCHAT'   => self::INTRUCTION_INCHAR,
+        'OUTCHAR'  => self::INTRUCTION_OUTCHAR,
     ];
 
     private array $registers;
@@ -107,13 +113,13 @@ class Sop
         }
 
         if (!($opCode & self::RAW_LEFT)) {
-            $arg1 = $this->registers[$arg1];
+            $arg1 = $this->getRegister($arg1);
         } else {
             $opCode &= ~self::RAW_LEFT;
         }
 
         if (!($opCode & self::RAW_RIGHT)) {
-            $arg2 = $this->registers[$arg2];
+            $arg2 = $this->getRegister($arg2);
         } else {
             $opCode &= ~self::RAW_RIGHT;
         }
@@ -130,6 +136,10 @@ class Sop
 
     public function getRegister(int $index): int
     {
+        if ($this->inputRegister === $index) {
+            return ord(fgetc(STDIN));
+        }
+
         return $this->registers[$index];
     }
 
@@ -160,6 +170,12 @@ class Sop
             case self::INSTRUCTION_LOAD:
                 $this->setRegister($arg1, $arg2);
                 break;
+            case self::INTRUCTION_INCHAR:
+                $this->setRegister($arg1, ord(fgetc(STDIN)));
+                break;
+            case self::INTRUCTION_OUTCHAR:
+                $this->out(chr($arg1));
+                break;
 
             case self::INSTRUCTION_JUMP:
                 $this->jumpTo($arg1);
@@ -184,7 +200,7 @@ class Sop
     private function setRegister(int $index, int $value): void
     {
         if ($this->outputRegister === $index) {
-            echo "Output: $value\n";
+            $this->out($value);
 
             return;
         }
@@ -194,5 +210,14 @@ class Sop
         }
 
         $this->registers[$index] = $value;
+    }
+
+    private function out(int|string $value): void
+    {
+        if ($this->isDebug) {
+            echo "Received value on output register:\n";
+        }
+
+        echo $value;
     }
 }
