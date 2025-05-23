@@ -1,0 +1,37 @@
+LOAD 0 1 0 // 0
+LOAD 1 1 0 // 4
+
+# Counter
+LOAD 2 2 0 // 8
+
+# Register Swap
+LOAD 5 0 0 // 12
+
+# Main Loop
+
+JEQ 32 0 5 // 16 (if register 5 is 0)
+JEQ 44 1 5 // 20  (if register 5 is 1)
+
+
+# END
+ADD_1 0 1 9 // 24
+HALT 0 0 0 // 28
+
+
+### Fibonacci Calculation
+
+## Even
+ADD 0 1 0 // 32
+## Swap
+LOAD 5 1 0 // 36
+
+JMP 52 0 0 // 40
+
+## Odd
+ADD 0 1 1 // 44
+## Swap
+LOAD 5 0 0 // 48
+
+ADD_1 1 2 2 // 52
+JEQ 24 10 2 // 56
+JMP 16 0 0 // 60 (Jump to the start of the loop)

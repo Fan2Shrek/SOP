@@ -2,7 +2,8 @@
 
 include './Sop.php';
 
-$code = <<<CODE
+if (1 === $argc) {
+    $code = <<<CODE
 LOAD 5 6 0
 LOAD 0 10 0
 
@@ -18,9 +19,14 @@ FAKE 0 0 0
 
 HALT 0 0 0
 CODE;
+} else {
+    $code = file_get_contents($argv[1]);
+}
 
 $sop = new Sop();
 
 $sop->process($code);
 
-echo "6 + 10 - 5 = ".$sop->getRegister(2).PHP_EOL;
+foreach ($sop->exportRegisters() as $index => $value) {
+    echo "R$index: $value\n";
+}
