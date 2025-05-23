@@ -1,0 +1,48 @@
+##############################
+#    r0   #  current entry   #
+#    r5   # count of entries #
+##############################
+#    r3   # map r5           #
+#    r6   # entry of RAM     #
+#    r2   # Total            #
+##############################
+
+LOAD r5 0 // 0
+
+INCHAR r0 // 4
+
+
+JEQ 24 10 r0 // 8 (if register 0 is 10 (\n))
+
+ADD 1 r5 r5 // 12
+STOREM r0 r5 // 16
+
+JMP 4 // 20 (Jump to the start of the loop)
+
+
+#### AVERAGE
+
+LOAD r3 r5 // 24
+LOADM r6 r5 // 28
+
+## Convert from ASCII
+SUB r6 48 r6 // 32
+
+ADD r6 r2 r2 // 36
+SUB r5 1 r5 // 40
+
+JEQ 52 0 r5 // 44 (if register 5 is 0)
+JMP 28 // 48 (Jump to the start of the loop)
+
+## END
+DIV r2 r3 r2 // 52
+## Convert to ASCII
+ADD 48 r2 r2 // 56
+OUTCHAR r2 // 60
+
+## Ends with a new line
+LOAD r0 10 // 64
+OUTCHAR r0 // 68
+
+
+HALT

@@ -8,6 +8,7 @@ class Sop
     private const INSTRUCTION_NO_OP   = 0b00000000;
     private const INSTRUCTION_ADD     = 0b00000001;
     private const INSTRUCTION_SUB     = 0b00000010;
+    private const INSTRUCTION_DIV     = 0b00000011;
     private const INSTRUCTION_LOAD    = 0b00000101;
     private const INSTRUCTION_HALT    = 0b00000111;
 
@@ -24,24 +25,17 @@ class Sop
     private const MNEMONICS = [
         'NOP'      => self::INSTRUCTION_NO_OP,
         'ADD'      => self::INSTRUCTION_ADD,
-        'ADD_1'    => self::INSTRUCTION_ADD  | self::RAW_LEFT,
-        'ADD_2'    => self::INSTRUCTION_ADD  | self::RAW_RIGHT,
-        'ADDi'     => self::INSTRUCTION_ADD  | self::RAW_LEFT | self::RAW_RIGHT,
         'SUB'      => self::INSTRUCTION_SUB,
-        'SUB_1'    => self::INSTRUCTION_SUB  | self::RAW_LEFT,
-        'SUB_2'    => self::INSTRUCTION_SUB  | self::RAW_RIGHT,
-        'SUBi'     => self::INSTRUCTION_SUB  | self::RAW_LEFT | self::RAW_RIGHT,
-        'LOAD'     => self::INSTRUCTION_LOAD | self::RAW_LEFT | self::RAW_RIGHT,
-        'LOAD_2'   => self::INSTRUCTION_LOAD | self::RAW_LEFT,
+        'DIV'      => self::INSTRUCTION_DIV,
+        'LOAD'     => self::INSTRUCTION_LOAD | self::RAW_LEFT,
         'HALT'     => self::INSTRUCTION_HALT,
         'JMP'      => self::INSTRUCTION_JUMP | self::RAW_LEFT,
         'JEQZ'     => self::INSTRUCTION_JEQZ | self::RAW_LEFT,
         'JEQ'      => self::INSTRUCTION_JEQ  | self::RAW_LEFT | self::RAW_RIGHT,
-        'INCHAR'   => self::INTRUCTION_INCHAR,
+        'INCHAR'   => self::INTRUCTION_INCHAR | self::RAW_LEFT,
         'OUTCHAR'  => self::INTRUCTION_OUTCHAR,
-        'LOADM'    => self::INSTRUCTION_LOADM | self::RAW_RIGHT,
-        'STOREM'   => self::INSTRUCTION_STOREM | self::RAW_LEFT,
-        'STOREMi'  => self::INSTRUCTION_STOREM | self::RAW_LEFT | self::RAW_RIGHT,
+        'LOADM'    => self::INSTRUCTION_LOADM | self::RAW_LEFT,
+        'STOREM'   => self::INSTRUCTION_STOREM,
     ];
 
     private array $registers;
@@ -101,14 +95,14 @@ class Sop
      */
     public function execute(string $code): void
     {
-        if (!preg_match('/^(\w+)(?:\s+(\d+))?(?:\s+(\d+))?(?:\s+(\d+))?\s*(?:\/\/.*)?$/', $code, $matches)) {
+        if (!preg_match('/^(\w+)(?:\s+(r?\d+))?(?:\s+(r?\d+))?(?:\s+(r?\d+))?\s*(?:\/\/.*)?$/', $code, $matches)) {
             throw new \InvalidArgumentException(\sprintf('Invalid instruction format "%s"', $code));
         }
 
         $instruction = $matches[1];
-        $arg1 = $matches[2] ?? 0;
-        $arg2 = $matches[3] ?? 0;
-        $arg3 = $matches[4] ?? 0;
+        $arg1 = trim($matches[2] ?? 0);
+        $arg2 = trim($matches[3] ?? 0);
+        $arg3 = trim($matches[4] ?? 0);
 
         if ($this->isDebug) {
             echo "Executing: $matches[0]\n";
@@ -116,6 +110,22 @@ class Sop
 
         if (null === $opCode = self::MNEMONICS[$instruction] ?? null) {
             throw new \InvalidArgumentException(\sprintf('Invalid instruction "%s"', $instruction));
+        }
+
+        if (!str_starts_with($arg1, 'r')) {
+            $opCode |= self::RAW_LEFT;
+        } else {
+            $arg1 = (int) substr($arg1, 1);
+        }
+
+        if (!str_starts_with($arg2, 'r')) {
+            $opCode |= self::RAW_RIGHT;
+        } else {
+            $arg2 = (int) substr($arg2, 1);
+        }
+
+        if (str_starts_with($arg3, 'r')) {
+            $arg3 = (int) substr($arg3, 1);
         }
 
         if (!($opCode & self::RAW_LEFT)) {
@@ -146,6 +156,10 @@ class Sop
             return ord(fgetc(STDIN));
         }
 
+        if (!isset($this->registers[$index])) {
+            throw new \InvalidArgumentException(\sprintf('Invalid register "%d"', $index));
+        }
+
         return $this->registers[$index];
     }
 
@@ -166,6 +180,10 @@ class Sop
 
     private function doInstruction(int $opCode, int $arg1, int $arg2, int $arg3): int
     {
+        if ($this->isDebug) {
+            echo "Executing instruction: $opCode - arg1: $arg1 - arg2: $arg2 - arg3: $arg3\n";
+        }
+
         switch ($opCode) {
             case self::INSTRUCTION_NO_OP:
                 break;
@@ -177,20 +195,36 @@ class Sop
             case self::INSTRUCTION_SUB:
                 $this->setRegister($arg3, $arg1 - $arg2);
                 break;
+            case self::INSTRUCTION_DIV:
+                $this->setRegister($arg3, intdiv($arg1, $arg2));
+                break;
 
             case self::INSTRUCTION_LOAD:
                 $this->setRegister($arg1, $arg2);
                 break;
             case self::INTRUCTION_INCHAR:
-                $this->setRegister($arg1, ord(fgetc(STDIN)));
+                shell_exec('stty -icanon -echo');
+                $char = fgetc(STDIN);
+                shell_exec('stty icanon echo');
+                if ($char === false) {
+                    $char = "\0";
+                }
+
+                $this->setRegister($arg1, ord($char));
                 break;
             case self::INTRUCTION_OUTCHAR:
                 $this->out(chr($arg1));
                 break;
             case self::INSTRUCTION_LOADM:
+                if ($this->isDebug) {
+                    echo "Loading value from memory address $arg2 into register $arg1\n";
+                }
                 $this->setRegister($arg1, $this->memory->get($arg2));
                 break;
             case self::INSTRUCTION_STOREM:
+                if ($this->isDebug) {
+                    echo "Storing value $arg1 in memory address $arg2\n";
+                }
                 $this->memory->set($arg2, $arg1);
                 break;
 
@@ -198,7 +232,7 @@ class Sop
                 $this->jumpTo($arg1);
                 break;
             case self::INSTRUCTION_JEQ:
-                if ($arg2 === $this->registers[$arg3]) {
+                if ($arg2 === $this->getRegister($arg3)) {
                     $this->jumpTo($arg1);
                 }
                 break;
@@ -252,11 +286,19 @@ class Memory
 
     public function get(int $address): int
     {
+        if (!isset($this->memory[$address])) {
+            throw new \InvalidArgumentException(\sprintf('Invalid memory address "%d"', $address));
+        }
+
         return $this->memory[$address];
     }
 
     public function set(int $address, int $value): void
     {
+        if (!isset($this->memory[$address])) {
+            throw new \InvalidArgumentException(\sprintf('Invalid memory address "%d"', $address));
+        }
+
         $this->memory[$address] = $value;
     }
 

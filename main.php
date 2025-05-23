@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 
-require __DIR__.'/vendor/autoload.php';
-require __DIR__.'/Sop.php';
+require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/Sop.php';
 
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
@@ -73,22 +73,24 @@ HALT 0 0 0
 CODE;
         }
 
-        $sop->process($code);
+        try {
+            $sop->process($code);
+        } finally {
+            if ($input->getOption('export') || $input->getOption('debug')) {
+                $output->writeln('<info>Registers:</info>');
+                foreach ($sop->exportRegisters() as $index => $value) {
+                    $output->writeln("R$index: $value");
+                }
 
-        if ($input->getOption('export') || $input->getOption('debug')) {
-            $output->writeln('<info>Registers:</info>');
-            foreach ($sop->exportRegisters() as $index => $value) {
-                $output->writeln("R$index: $value");
-            }
+                if ($memory) {
+                    $output->writeln('<info>Memory:</info>');
+                    foreach ($memory->export() as $index => $value) {
+                        if (0 === $value) {
+                            continue;
+                        }
 
-            if ($memory) {
-                $output->writeln('<info>Memory:</info>');
-                foreach ($memory->export() as $index => $value) {
-                    if (0 === $value) {
-                        continue;
+                        $output->writeln("M$index: $value");
                     }
-
-                    $output->writeln("M$index: $value");
                 }
             }
         }

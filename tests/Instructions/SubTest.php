@@ -31,32 +31,4 @@ final class SubTest extends TestCase
         yield [6, 5, 6];
         yield [7, 6, 7];
     }
-
-    public function testSubImediate1()
-    {
-        $sop = new \Sop();
-        $sop->execute("LOAD 5 16 0");
-
-        $sop->execute("SUB_1 10 5 3");
-
-        $this->assertSame(-6, $sop->getRegister(3));
-    }
-
-    public function testSubImediate2()
-    {
-        $sop = new \Sop();
-        $sop->execute("LOAD 5 16 0");
-
-        $sop->execute("SUB_2 5 10 3");
-
-        $this->assertSame(6, $sop->getRegister(3));
-    }
-
-    public function testSubImediate()
-    {
-        $sop = new \Sop();
-        $sop->execute("SUBi 10 5 3");
-
-        $this->assertSame(5, $sop->getRegister(3));
-    }
 }
