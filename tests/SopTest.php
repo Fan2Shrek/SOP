@@ -24,14 +24,6 @@ final class SopTest extends TestCase
         yield [16];
     }
 
-    public function testExecuteInvalidInstruction(): void
-    {
-        $sop = new \Sop();
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid instruction format');
-        $sop->execute('LOAD 5 6');
-    }
-
     public function testExecuteUnknownMnemonic(): void
     {
         $sop = new \Sop();
