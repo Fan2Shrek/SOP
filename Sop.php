@@ -37,6 +37,8 @@ class Sop
     private int $outputRegister;
     private int $pc;
 
+    private bool $isDebug = false;
+
     public function __construct(
         int $registers = 8,
     )
@@ -91,7 +93,9 @@ class Sop
         }
 
         list($full, $instruction, $arg1, $arg2, $arg3) = $matches;
-        echo "Executing: $full\n";
+        if ($this->isDebug) {
+            echo "Executing: $full\n";
+        }
 
         if (null === $opCode = self::MNEMONICS[$instruction] ?? null) {
             throw new \InvalidArgumentException(\sprintf('Invalid instruction "%s"', $instruction));
@@ -127,6 +131,11 @@ class Sop
     public function jumpTo(int $address): void
     {
         $this->pc = $address;
+    }
+
+    public function enableDebug(): void
+    {
+        $this->isDebug = true;
     }
 
     private function doInstruction(int $opCode, int $arg1, int $arg2, int $arg3): int

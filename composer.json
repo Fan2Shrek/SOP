@@ -1,5 +1,8 @@
 {
     "require-dev": {
         "phpunit/phpunit": "^12.1"
+    },
+    "require": {
+        "symfony/console": "^7.2"
     }
 }
