@@ -89,13 +89,17 @@ class Sop
      */
     public function execute(string $code): void
     {
-        if (!preg_match('/^(\w+)\s+(\d+)\s+(\d+)\s+(\d+)\s*(?:\/.*)?$/', $code, $matches)) {
+        if (!preg_match('/^(\w+)(?:\s+(\d+))?(?:\s+(\d+))?(?:\s+(\d+))?\s*(?:\/\/.*)?$/', $code, $matches)) {
             throw new \InvalidArgumentException(\sprintf('Invalid instruction format "%s"', $code));
         }
 
-        list($full, $instruction, $arg1, $arg2, $arg3) = $matches;
+        $instruction = $matches[1];
+        $arg1 = $matches[2] ?? 0;
+        $arg2 = $matches[3] ?? 0;
+        $arg3 = $matches[4] ?? 0;
+
         if ($this->isDebug) {
-            echo "Executing: $full\n";
+            echo "Executing: $matches[0]\n";
         }
 
         if (null === $opCode = self::MNEMONICS[$instruction] ?? null) {
