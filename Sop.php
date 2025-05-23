@@ -26,6 +26,7 @@ class Sop
         'SUB_2'    => self::INSTRUCTION_SUB  | self::RAW_RIGHT,
         'SUBi'     => self::INSTRUCTION_SUB  | self::RAW_LEFT | self::RAW_RIGHT,
         'LOAD'     => self::INSTRUCTION_LOAD | self::RAW_LEFT | self::RAW_RIGHT,
+        'LOAD_2'   => self::INSTRUCTION_LOAD | self::RAW_LEFT,
         'HALT'     => self::INSTRUCTION_HALT,
         'JMP'      => self::INSTRUCTION_JUMP | self::RAW_LEFT,
         'JEQZ'     => self::INSTRUCTION_JEQZ | self::RAW_LEFT,
