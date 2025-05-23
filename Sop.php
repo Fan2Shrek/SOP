@@ -2,20 +2,29 @@
 
 class Sop
 {
-    private const RAW_LEFT  = 1 << 2;
-    private const RAW_RIGHT = 1 << 3;
+    private const RAW_LEFT  = 1 << 6;
+    private const RAW_RIGHT = 1 << 7;
 
-    private const INSTRUCTION_NO_OP = 0b0000;
-    private const INSTRUCTION_ADD   = 0b0001;
-    private const INSTRUCTION_LOAD  = 0b0010;
+    private const INSTRUCTION_NO_OP = 0b00000000;
+    private const INSTRUCTION_ADD   = 0b00000001;
+    private const INSTRUCTION_SUB   = 0b00000010;
+    private const INSTRUCTION_LOAD  = 0b00000101;
+    private const INSTRUCTION_JUMP  = 0b00000110;
+    private const INSTRUCTION_HALT  = 0b00000111;
 
     private const MNEMONICS = [
         'NOP'      => self::INSTRUCTION_NO_OP,
         'ADD'      => self::INSTRUCTION_ADD,
-        'ADD_1'    => self::INSTRUCTION_ADD | self::RAW_LEFT,
-        'ADD_2'    => self::INSTRUCTION_ADD | self::RAW_RIGHT,
-        'ADDi'     => self::INSTRUCTION_ADD | self::RAW_LEFT | self::RAW_RIGHT,
+        'ADD_1'    => self::INSTRUCTION_ADD  | self::RAW_LEFT,
+        'ADD_2'    => self::INSTRUCTION_ADD  | self::RAW_RIGHT,
+        'ADDi'     => self::INSTRUCTION_ADD  | self::RAW_LEFT | self::RAW_RIGHT,
+        'SUB'      => self::INSTRUCTION_SUB,
+        'SUB_1'    => self::INSTRUCTION_SUB  | self::RAW_LEFT,
+        'SUB_2'    => self::INSTRUCTION_SUB  | self::RAW_RIGHT,
+        'SUBi'     => self::INSTRUCTION_SUB  | self::RAW_LEFT | self::RAW_RIGHT,
         'LOAD'     => self::INSTRUCTION_LOAD | self::RAW_LEFT | self::RAW_RIGHT,
+        'JMP'      => self::INSTRUCTION_JUMP | self::RAW_LEFT,
+        'HALT'     => self::INSTRUCTION_HALT,
     ];
 
     private array $registers;
@@ -50,8 +59,8 @@ class Sop
         }
 
         $this->pc = 0;
-        foreach ($program as $line) {
-            $this->execute($line);
+        while ($this->pc >= 0 && $this->pc < count($program) * 4) {
+            $this->execute($program[$this->pc]);
             $this->pc += 4;
         }
     }
@@ -68,9 +77,10 @@ class Sop
         }
 
         list($full, $instruction, $arg1, $arg2, $arg3) = $matches;
+        echo "Executing: $full\n";
 
         if (null === $opCode = self::MNEMONICS[$instruction] ?? null) {
-            throw new \InvalidArgumentException('Invalid instruction');
+            throw new \InvalidArgumentException(\sprintf('Invalid instruction "%s"', $instruction));
         }
 
         if (!($opCode & self::RAW_LEFT)) {
@@ -110,16 +120,28 @@ class Sop
         switch ($opCode) {
             case self::INSTRUCTION_NO_OP:
                 break;
+
+            ## ALU related
             case self::INSTRUCTION_ADD:
                 $this->registers[$arg3] = $arg1 + $arg2;
+                break;
+            case self::INSTRUCTION_SUB:
+                $this->registers[$arg3] = $arg1 - $arg2;
                 break;
 
             case self::INSTRUCTION_LOAD:
                 $this->registers[$arg1] = $arg2;
                 break;
 
+            case self::INSTRUCTION_JUMP:
+                $this->jumpTo($arg1);
+                break;
+            case self::INSTRUCTION_HALT:
+                $this->jumpTo(-999);
+                break;
+
             default:
-                throw new \InvalidArgumentException('Invalid instruction');
+                throw new \InvalidArgumentException(\sprintf('Unhandled instruction "%d"', $opCode));
         }
 
         return 0;
