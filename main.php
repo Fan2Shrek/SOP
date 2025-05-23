@@ -20,6 +20,7 @@ $application->add(new class extends Command {
             ->addOption('register', 'r', null, 'How many registers to use')
             ->addOption('export', 'e', null, 'Export registers')
             ->addOption('execute', 'E', InputOption::VALUE_REQUIRED, 'Execute the code')
+            ->addOption('ram', null, InputOption::VALUE_REQUIRED, 'RAM size (0 to work without RAM, default 256)', 256)
             ->addArgument('file', InputArgument::OPTIONAL, 'File to execute', null)
             ->setHelp('This command runs the Sop interpreter.')
             ->setName('run')
@@ -32,6 +33,12 @@ $application->add(new class extends Command {
         $sop = new Sop(
             $input->getOption('register') ?: 8,
         );
+
+        $memory = null;
+        if (0 !== $input->getOption('ram')) {
+            $memory = new Memory($input->getOption('ram'));
+            $sop->addMemory($memory);
+        }
 
         if ($input->getOption('debug')) {
             $sop->enableDebug();
@@ -72,6 +79,17 @@ CODE;
             $output->writeln('<info>Registers:</info>');
             foreach ($sop->exportRegisters() as $index => $value) {
                 $output->writeln("R$index: $value");
+            }
+
+            if ($memory) {
+                $output->writeln('<info>Memory:</info>');
+                foreach ($memory->export() as $index => $value) {
+                    if (0 === $value) {
+                        continue;
+                    }
+
+                    $output->writeln("M$index: $value");
+                }
             }
         }
 

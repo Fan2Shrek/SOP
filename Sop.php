@@ -5,18 +5,21 @@ class Sop
     private const RAW_LEFT  = 1 << 6;
     private const RAW_RIGHT = 1 << 7;
 
-    private const INSTRUCTION_NO_OP  = 0b00000000;
-    private const INSTRUCTION_ADD    = 0b00000001;
-    private const INSTRUCTION_SUB    = 0b00000010;
-    private const INSTRUCTION_LOAD   = 0b00000101;
-    private const INSTRUCTION_HALT   = 0b00000111;
+    private const INSTRUCTION_NO_OP   = 0b00000000;
+    private const INSTRUCTION_ADD     = 0b00000001;
+    private const INSTRUCTION_SUB     = 0b00000010;
+    private const INSTRUCTION_LOAD    = 0b00000101;
+    private const INSTRUCTION_HALT    = 0b00000111;
 
-    private const INSTRUCTION_JUMP   = 0b00001000;
-    private const INSTRUCTION_JEQZ   = 0b00001001;
-    private const INSTRUCTION_JEQ    = 0b00001010;
+    private const INSTRUCTION_JUMP    = 0b00001000;
+    private const INSTRUCTION_JEQZ    = 0b00001001;
+    private const INSTRUCTION_JEQ     = 0b00001010;
 
-    private const INTRUCTION_INCHAR  = 0b00001100;
-    private const INTRUCTION_OUTCHAR = 0b00001101;
+    private const INTRUCTION_INCHAR   = 0b00001100;
+    private const INTRUCTION_OUTCHAR  = 0b00001101;
+
+    private const INSTRUCTION_LOADM   = 0b00001110;
+    private const INSTRUCTION_STOREM  = 0b00001111;
 
     private const MNEMONICS = [
         'NOP'      => self::INSTRUCTION_NO_OP,
@@ -34,9 +37,11 @@ class Sop
         'JMP'      => self::INSTRUCTION_JUMP | self::RAW_LEFT,
         'JEQZ'     => self::INSTRUCTION_JEQZ | self::RAW_LEFT,
         'JEQ'      => self::INSTRUCTION_JEQ  | self::RAW_LEFT | self::RAW_RIGHT,
-
-        'INCHAT'   => self::INTRUCTION_INCHAR,
+        'INCHAR'   => self::INTRUCTION_INCHAR,
         'OUTCHAR'  => self::INTRUCTION_OUTCHAR,
+        'LOADM'    => self::INSTRUCTION_LOADM | self::RAW_RIGHT,
+        'STOREM'   => self::INSTRUCTION_STOREM | self::RAW_LEFT,
+        'STOREMi'  => self::INSTRUCTION_STOREM | self::RAW_LEFT | self::RAW_RIGHT,
     ];
 
     private array $registers;
@@ -45,6 +50,7 @@ class Sop
     private int $pc;
 
     private bool $isDebug = false;
+    private Memory $memory;
 
     public function __construct(
         int $registers = 8,
@@ -153,6 +159,11 @@ class Sop
         $this->isDebug = true;
     }
 
+    public function addMemory(Memory $memory): void
+    {
+        $this->memory = $memory;
+    }
+
     private function doInstruction(int $opCode, int $arg1, int $arg2, int $arg3): int
     {
         switch ($opCode) {
@@ -175,6 +186,12 @@ class Sop
                 break;
             case self::INTRUCTION_OUTCHAR:
                 $this->out(chr($arg1));
+                break;
+            case self::INSTRUCTION_LOADM:
+                $this->setRegister($arg1, $this->memory->get($arg2));
+                break;
+            case self::INSTRUCTION_STOREM:
+                $this->memory->set($arg2, $arg1);
                 break;
 
             case self::INSTRUCTION_JUMP:
@@ -219,5 +236,32 @@ class Sop
         }
 
         echo $value;
+    }
+}
+
+class Memory
+{
+    private array $memory = [];
+
+    public function __construct(
+        int $size = 1024,
+    )
+    {
+        $this->memory = array_fill(0, $size, 0);
+    }
+
+    public function get(int $address): int
+    {
+        return $this->memory[$address];
+    }
+
+    public function set(int $address, int $value): void
+    {
+        $this->memory[$address] = $value;
+    }
+
+    public function export(): array
+    {
+        return $this->memory;
     }
 }
