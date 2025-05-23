@@ -3,4 +3,4 @@
 | ADD  | 0000 |  a   |   b   |   c   | c = b+a |
 
 
-Bytes 3 and 4 are for immediate values.
+Bits 3 and 4 are for immediate values.
