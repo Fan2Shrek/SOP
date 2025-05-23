@@ -19,15 +19,46 @@ class Sop
     ];
 
     private array $registers;
+    private int $pc;
 
     public function __construct(
         int $registers = 8,
     )
     {
         $this->registers = array_fill(0, $registers, 0);
+        $this->pc = 0;
     }
 
     /**
+     * Process a SOP code
+     */
+    public function process(string $code): void
+    {
+        if (\is_file($code) && is_readable($code)) {
+            $code = file_get_contents($code);
+        }
+
+        $program = [];
+        $i = 0;
+        foreach (explode("\n", $code) as $line) {
+            if (empty($line) || $line[0] === '#') {
+                continue;
+            }
+
+            $program[$i] = trim($line);
+            $i +=4;
+        }
+
+        $this->pc = 0;
+        foreach ($program as $line) {
+            $this->execute($line);
+            $this->pc += 4;
+        }
+    }
+
+    /**
+     * Execute a SOP instruction
+     *
      * maybe will return int for flags
      */
     public function execute(string $code): void
@@ -67,6 +98,11 @@ class Sop
     public function getRegister(int $index): int
     {
         return $this->registers[$index];
+    }
+
+    public function jumpTo(int $address): void
+    {
+        $this->pc = $address;
     }
 
     private function doInstruction(int $opCode, int $arg1, int $arg2, int $arg3): int
